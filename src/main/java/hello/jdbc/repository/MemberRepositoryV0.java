@@ -5,6 +5,7 @@ import hello.jdbc.domain.Member;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.*;
+import java.util.NoSuchElementException;
 
 /**
  * JDBC - DriverManager 사용
@@ -23,7 +24,7 @@ public class MemberRepositoryV0 {
             pstmt = con.prepareStatement(sql);
             pstmt.setString(1, member.getMemberId());
             pstmt.setInt(2, member.getMoney());
-            pstmt.executeUpdate();
+            pstmt.executeUpdate();  //executeUpdate()는 데이터를 변경할 때 사용
             return member;
         } catch (SQLException e) {
             log.error("db error", e);
@@ -32,6 +33,36 @@ public class MemberRepositoryV0 {
             close(con, pstmt, null);
         }
     }
+
+    public Member findById(String memberId) throws SQLException {
+        String sql = "select * from member where member_id = ?";
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = getConnection();
+            pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, memberId);
+
+            rs = pstmt.executeQuery();  //select는 executeQuery() 변경 X
+            if (rs.next()) {  //한번은 호출을 해줘야 실제 데이터가 있는 곳부터 시작
+                Member member = new Member();
+                member.setMemberId(rs.getString("member_id"));
+                member.setMoney(rs.getInt("money"));
+                return member;
+            } else {
+                throw new NoSuchElementException("member not found memberId=" + memberId);
+            }
+        } catch (SQLException e) {
+            log.error("db error", e);
+            throw e;
+        } finally {
+            close(con, pstmt, rs);
+        }
+    }
+
 
     private void close(Connection con, Statement stmt, ResultSet rs) {
 
